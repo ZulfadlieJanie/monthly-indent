@@ -293,6 +293,12 @@
     btn.disabled = true;
     btn.textContent = "Generating Monthly Ordering PDF...";
 
+    // 1. Pre-open a blank tab immediately on physical user click to bypass browser popup blockers
+    const pdfWindow = window.open('', '_blank');
+    if (pdfWindow) {
+      pdfWindow.document.write('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px;">Generating your Monthly Indent PDF... Please wait.</h2>');
+    }
+
     const payload = {
       month: document.getElementById('orderMonth').value,
       year: document.getElementById('orderYear').value,
@@ -311,15 +317,23 @@
     .then(res => {
       btn.disabled = false;
       btn.textContent = "Print as PDF";
+      
       if (res.success && res.pdfUrl) {
-        window.open(res.pdfUrl, "_blank");
+        // 2. Redirect the pre-opened tab to the generated Google Drive PDF link
+        if (pdfWindow) {
+          pdfWindow.location.href = res.pdfUrl;
+        } else {
+          window.location.href = res.pdfUrl;
+        }
       } else {
-        alert("Failed to generate PDF: " + res.error);
+        if (pdfWindow) pdfWindow.close();
+        alert("Failed to generate PDF: " + (res.error || "Unknown error"));
       }
     })
     .catch(err => {
       btn.disabled = false;
       btn.textContent = "Print as PDF";
+      if (pdfWindow) pdfWindow.close();
       alert("Error exporting PDF: " + err);
     });
   });
